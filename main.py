@@ -14,6 +14,7 @@ m_vals = np.arange(-7/2, 7/2 + 1, 1)  # [-3.5, -2.5, ..., 3.5]
 #m_vals = np.arange(-1/2, 1/2 + 1, 1)
 T = np.arange(0.1, 1, 0.01)
 H = np.arange(0, 0.7, 0.01)
+k_b = 1.380649E-23 #J/K
 
 def energy_Levels_Gd(S, m, H_in_Tesla, b0_2_in_Oe, theta = np.pi/2):
     E_zeeman = g * mu_B * H_in_Tesla * m
@@ -117,4 +118,38 @@ def fitHC_with_pobell():
     #    export_df.to_excel(writer, sheet_name='Fitted Curve', index=False)
     #    fit_data_df.to_excel(writer, sheet_name='Fit Residuals', index=False)
 
-draw_theta_zero_lines(660)
+def calculate_HC_from_ESR():
+    df = pd.read_csv("Energy_Eigenvaulues.csv")
+    angles = df['theta'].unique()
+    cmap = plt.cm.viridis
+
+    for theta in angles:
+        theta_specific_energy_levels = df[(df['theta'] == theta)]#.any(axis=1)]
+        theta_specific_energy_levels = np.delete(theta_specific_energy_levels, 0, 1)
+        #theta_specific_energy_levels = theta_specific_energy_levels.to_numpy()
+        magnetic_field = theta_specific_energy_levels[:,0]
+
+        for i in range(1, theta_specific_energy_levels.shape[1]):
+            color = cmap((i - 1) / (theta_specific_energy_levels.shape[1] - 2))
+            plt.plot(magnetic_field, theta_specific_energy_levels[:, i], label=f'col {i}', color=color)
+
+        #for field in magnetic_field:
+        #    for i, temp in enumerate(T):
+        #        Z = np.sum(np.exp(-E_i / temp))
+        #        avg_E = np.sum(E_i * np.exp(-E_i / temp)) / Z
+        #        avg_E2 = np.sum(E_i ** 2 * np.exp(-E_i / temp)) / Z
+        #        C[i] = (avg_E2 - avg_E ** 2) / temp ** 2 * R
+        #    return C
+
+
+
+    plt.show()
+    print(theta_specific_energy_levels)
+
+
+
+
+
+
+calculate_HC_from_ESR()
+#draw_theta_zero_lines(660)
