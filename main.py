@@ -5,6 +5,7 @@ from scipy.optimize import curve_fit
 #import matplotlib.pyplot as plt
 import matplotlib.pyplot as plt
 import pandas as pd
+from matplotlib.colors import Normalize
 
 # Constants
 R = 8.314  # J/mol·K
@@ -129,7 +130,6 @@ def calculate_HC_from_ESR():
     df = pd.read_csv("Eigenvals-1Ghz847_g2.csv")
     angles = df['theta'].unique()
     cmap = plt.cm.viridis
-    list_of_specific_heat = []
     C = np.zeros_like(T)  # Temperatrues in K
 
     for theta in angles:
@@ -161,10 +161,57 @@ def calculate_HC_from_ESR():
         #    plt.title(theta)
         #    plt.xscale('log')
 
-    plt.xlabel('Feld (Oe)')
-    plt.ylabel('Energie (GHz)')
-    plt.show()
+        plt.xlabel('Feld (Oe)')
+        plt.ylabel('Energie (GHz)')
+        plt.show()
 
+
+def plot_energy_levels():
+    df = pd.read_csv("Eigenvals-1Ghz847_g2.csv")
+    angles = df['theta'].unique()
+
+    n_angles = len(angles)
+
+    # Create figure with subplots (5 rows if many angles, adjust as needed)
+    n_cols = min(5, n_angles)
+    n_rows = (n_angles + n_cols - 1) // n_cols
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 5 * n_rows),
+                             sharex=True, sharey=True)
+    if n_angles == 1:
+        axes = [axes]
+    elif n_rows == 1:
+        axes = axes
+    else:
+        axes = axes.flatten()
+
+    norm = Normalize(vmin=0, vmax=8)
+    cmap = plt.cm.viridis
+
+    for i, theta in enumerate(angles):
+        ax = axes[i]
+
+        # Plot all field curves for this theta
+        theta_specific_energy_levels = df[(df['theta'] == theta)]
+        theta_specific_energy_levels = np.delete(theta_specific_energy_levels, 0, 1)
+        magnetic_field = theta_specific_energy_levels[:, 0]
+        for i in range(1, theta_specific_energy_levels.shape[1]):
+            color = cmap(norm(i))
+            ax.plot(magnetic_field, theta_specific_energy_levels[:, i], color=color)
+            #ax.plot(T, C_3d[i, j, :], color=color, linewidth=1.5, alpha=0.8)
+
+        ax.set_title(f'θ = {theta}°', fontsize=12, fontweight='bold')
+        ax.set_xlabel('Field (T)')
+        ax.set_ylabel('Energy (GHz)')
+        ax.grid(True, alpha=0.3)
+
+    # Hide empty subplots
+    for i in range(n_angles, len(axes)):
+        axes[i].set_visible(False)
+
+    plt.suptitle('Energieniveaus für alle θ',
+                 fontsize=16, fontweight='bold', y=0.98)
+    plt.tight_layout()
+    plt.show()
 
 def calculate_HC_from_ESR2():
     import matplotlib.pyplot as plt
@@ -376,13 +423,11 @@ def plot_all_C_vs_T_by_theta(C_3d, angles, fields, T):
     angles, fields, T : coordinate arrays
     """
     import matplotlib.pyplot as plt
-    from matplotlib.colors import Normalize
-    import numpy as np
 
     n_angles = len(angles)
     n_fields = len(fields)
 
-    # Create figure with subplots (2 rows if many angles, adjust as needed)
+    # Create figure with subplots (5 rows if many angles, adjust as needed)
     n_cols = min(5, n_angles)
     n_rows = (n_angles + n_cols - 1) // n_cols
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 5 * n_rows),
@@ -394,7 +439,6 @@ def plot_all_C_vs_T_by_theta(C_3d, angles, fields, T):
     else:
         axes = axes.flatten()
 
-    # Viridis colormap for fields (same as your original)
     norm = Normalize(vmin=fields.min(), vmax=fields.max())
     cmap = plt.cm.viridis
 
@@ -408,8 +452,8 @@ def plot_all_C_vs_T_by_theta(C_3d, angles, fields, T):
 
         ax.set_title(f'θ = {theta}°', fontsize=12, fontweight='bold')
         ax.set_xscale('log')
-        ax.set_xlabel('Temperature (K)')
-        ax.set_ylabel('Specific Heat C (J/mol·K)')
+        ax.set_xlabel('Temperatur (K)')
+        ax.set_ylabel('Spezifische Wärme (J/mol·K)')
         ax.grid(True, alpha=0.3)
 
     # Hide empty subplots
@@ -419,16 +463,13 @@ def plot_all_C_vs_T_by_theta(C_3d, angles, fields, T):
     # Add shared colorbar
     cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),
                         ax=axes[0], orientation='vertical',
-                        label='Magnetic Field (Oe)', pad=0.02, shrink=0.8)
-    cbar.set_label('Magnetic Field (Oe)', fontsize=12, fontweight='bold')
+                        label='Feld (Oe)', pad=0.02, shrink=0.8)
+    cbar.set_label('Feld (Oe)', fontsize=12, fontweight='bold')
 
-    plt.suptitle('Specific Heat C vs T for All θ and B Fields',
+    plt.suptitle('Spezifische Wärme c vs T für alle (θ,B)',
                  fontsize=16, fontweight='bold', y=0.98)
     plt.tight_layout()
     plt.show()
-
-    print(f"Plotted {n_fields} fields × {n_angles} angles = {n_fields * n_angles} curves")
-    print(f"Field range: {fields.min():.1f} - {fields.max():.1f} Oe")
 
 
 def plot_all_C_and_dual_averaging(C_3d, angles, fields, T):
@@ -478,22 +519,22 @@ def plot_all_C_and_dual_averaging(C_3d, angles, fields, T):
     # Colorbar for fields (shared) - also inverted
     cbar = plt.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),
                         ax=ax_left, orientation='vertical', pad=0.02)
-    cbar.set_label('Magnetic Field (Oe)', fontsize=12, fontweight='bold')
+    cbar.set_label('Feld (Oe)', fontsize=12, fontweight='bold')
 
     # RIGHT: Dual averaging comparison - also inverted colors
     colors = plt.cm.viridis_r(np.linspace(0, 1, len(fields)))  # INVERTED colormap
     fields_to_plot = [0, len(fields) // 3, 2 * len(fields) // 3, -1]  # 4 representative fields
 
     for idx, field_idx in enumerate(fields_to_plot):
-        field_val = fields[field_idx]
+        field_val = round(fields[field_idx])
         color = colors[field_idx]
 
         # Uniform average (solid)
         ax_right.plot(T, C_avg_uniform[field_idx], color=color, linewidth=3,
-                      label=f'Unif B={field_val:.1f}')
+                      label=f'Ø B={field_val}')
         # Weighted average (dashed)
         ax_right.plot(T, C_avg_weighted[field_idx], color=color, linewidth=3,
-                      linestyle='--', label=f'Wt B={field_val:.1f}')
+                      linestyle='--', label=f'sin(θ) B={field_val}')
 
     ax_right.set_xscale('log')
     ax_right.set_xlabel('Temperatur (K)')
@@ -515,11 +556,12 @@ def plot_all_C_and_dual_averaging(C_3d, angles, fields, T):
     print(f"Shape C_avg_uniform: {C_avg_uniform.shape}")
 
 
-#calculate_HC_from_ESR()
-#plot_all_C_vs_T_by_theta(C_3d, angles, fields, T)
-
-
+plot_energy_levels()
 C_3d, angles, fields = calculate_HC_from_ESR2()
+plot_all_C_vs_T_by_theta(C_3d, angles, fields, T)
+
+
+
 # T = np.logspace(0.01, 2, 100)
 #plot_all_C_and_dual_averaging(C_3d, angles, fields, T)
 
