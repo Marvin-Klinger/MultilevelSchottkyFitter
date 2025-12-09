@@ -16,7 +16,7 @@ m_vals = np.arange(-7/2, 7/2 + 1, 1)  # [-3.5, -2.5, ..., 3.5] for Gadolinium
 
 # Temperature scale
 Tmin, Tmax = 1e-2, 1e1
-n = 100
+n = 200
 T = np.logspace(np.log10(Tmin), np.log10(Tmax), num=n) #T = np.arange(0.01, 10, 0.01) linear alternative
 
 H = np.arange(0, 0.7, 0.01)
@@ -152,7 +152,7 @@ def plot_energy_levels(filename, combined = False):
     combined : bool combine plots into single graph (default False)
     --------
     """
-    df = pd.read_csv(filename)
+    df = pd.read_csv(filename, header=None, names=['theta','H','0','1','2','3','4','5','6','7'])
     angles = df['theta'].unique()
     cmap = plt.cm.viridis
 
@@ -243,7 +243,7 @@ def calculate_hc_from_esr(filename, T = np.logspace(-2, 1, 100)):
     --------
     C_3d : ndarray shape (n_angles, n_fields, n_temps)
     """
-    df = pd.read_csv(filename)
+    df = pd.read_csv(filename, header=None, names=['theta','H','0','1','2','3','4','5','6','7'])
     angles = df['theta'].unique()
     R = 8.314  # Gas constant in J/mol·K
 
@@ -317,7 +317,6 @@ def average_C_over_theta_weighted(C_3d, angles, weighting='sin_theta', deviation
     weights : ndarray - normalization weights used
     """
     import numpy as np
-
     theta_rad = np.deg2rad(angles + deviation)  # Convert to radians
 
     if weighting == 'sin_theta':
@@ -545,7 +544,7 @@ def plot_all_C_and_dual_averaging(C_3d, angles, fields, T):
 
     # RIGHT: Dual averaging comparison - also inverted colors
     colors = plt.cm.viridis_r(np.linspace(0, 1, len(fields)))  # INVERTED colormap
-    fields_to_plot = [0, len(fields) // 3, 2 * len(fields) // 3, -1]  # 4 representative fields
+    fields_to_plot = [0, len(fields) // 8, len(fields) // 4, 2 * len(fields) // 4, 3 * len(fields) // 4, -1]  # 5 representative fields
 
     for idx, field_idx in enumerate(fields_to_plot):
         field_val = fields[field_idx]
@@ -578,7 +577,7 @@ def plot_all_C_and_dual_averaging(C_3d, angles, fields, T):
     print(f"Shape C_avg_uniform: {C_avg_uniform.shape}")
 
 
-def plot_c_averaging(C_3d, angles, fields, T, fields_to_plot):
+def plot_c_averaging(C_3d, angles, fields, T, fields_to_plot = None):
     """
     plot: sin(θ)-weighted averaging
 
@@ -591,33 +590,36 @@ def plot_c_averaging(C_3d, angles, fields, T, fields_to_plot):
     from matplotlib.colors import Normalize
     import numpy as np
 
+    if fields_to_plot is None:
+        fields_to_plot = fields
+
     # Compute weighted average
     C_avg_weighted, _, weights = average_C_over_theta_weighted(C_3d, angles, 'sin_theta')
 
     fig = plt.figure(figsize=(8, 6), dpi=80)
 
     # RIGHT: Dual averaging comparison - also inverted colors
-    colors = plt.cm.viridis_r(np.linspace(0, 1, len(fields)))  # INVERTED colormap
+    colors = plt.cm.viridis_r(np.linspace(0, 1, len(fields_to_plot)))  # INVERTED colormap
     #fields_to_plot = [0, len(fields) // 3, 2 * len(fields) // 3, -1]  # 4 representative fields
 
-    for idx, field_idx in enumerate(fields_to_plot):
-        field_val = fields[field_idx]
-        color = colors[field_idx]
+    for idx, field in enumerate(fields_to_plot):
+        field_val = field#fields[field_idx]
+        color = colors[idx]
 
         # Weighted average (dashed)
-        plt.plot(T, C_avg_weighted[field_idx], color=color, linewidth=2,
-                      linestyle='--', label=f'sin(θ) B={field_val}')
+        plt.plot(T, C_avg_weighted[np.where(fields == field)[0][0]], color=color, linewidth=2,
+                      label=f'sin(θ) B={field_val}')
 
     plt.xscale('log')
     plt.xlabel('Temperatur (K)')
     plt.ylabel('Spezifische Wärme c (J/mol·K)')
-    plt.title('Mittelwert (Linie) vs Mittelwert * sinus(θ) (Striche)')
+    plt.title('Mittelwert (Linie) vs Mittelwert * sinus(θ)')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.grid(True, alpha=0.3)
 
     plt.suptitle('Spezifische Wärme: Kugelgewichtet',
                  fontsize=14, fontweight='bold')
-    plt.tight_layout()
+    #plt.tight_layout()
     plt.show()
 
 
@@ -654,7 +656,7 @@ def plot_all_C_vs_T_by_offset_theta(C_3d, angles, fields, T, angle_offsets):
 
     for i, theta in enumerate(angle_offsets):
         ax = axes[i]
-        C_avg_weighted, _, weights = average_C_over_theta_weighted(C_3d, angles, 'sin_theta', angle_offsets)
+        C_avg_weighted, _, weights = average_C_over_theta_weighted(C_3d, angles, 'sin_theta', theta)
 
         # Plot all field curves for this theta
         for j, field in enumerate(fields):
@@ -677,7 +679,7 @@ def plot_all_C_vs_T_by_offset_theta(C_3d, angles, fields, T, angle_offsets):
                         label='Feld (Oe)', pad=0.02, shrink=0.8)
     cbar.set_label('Feld (Oe)', fontsize=12, fontweight='bold')
 
-    plt.suptitle('Spezifische Wärme c vs T für alle (offset, B)',
+    plt.suptitle('Spezifische Wärme c vs T, Kugelgewichtet mit Vorzugsrichtung',
                  fontsize=16, fontweight='bold', y=0.98)
     plt.tight_layout()
     plt.show()
@@ -687,9 +689,17 @@ def load_hc_xlsx(filename):
     hc_data = pd.read_excel(filename, header=None, names=['T','C'])
 
 
-plot_energy_levels()
-C_3d, angles, fields = calculate_hc_from_esr("test.csv", T)
+filename = "E.csv"
+#filename = "2GHz4_g2.csv"
+
+plot_energy_levels(filename, True)
+C_3d, angles, fields = calculate_hc_from_esr(filename, T)
+
 plot_all_C_vs_T_by_theta(C_3d, angles, fields, T)
+
 plot_all_C_and_dual_averaging(C_3d, angles, fields, T)
-plot_c_averaging(C_3d, angles, fields, T, [0, 100, 500, 1000, 5000])
+#plot_c_averaging(C_3d, angles, fields, T, [0, 200, 400, 600, 2000])
+
+plot_c_averaging(C_3d, angles, fields, T)
+
 plot_all_C_vs_T_by_offset_theta(C_3d, angles, fields, T, angles)
