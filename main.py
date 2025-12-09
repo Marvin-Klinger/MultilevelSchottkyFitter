@@ -156,14 +156,18 @@ def plot_energy_levels(filename, combined = False):
     angles = df['theta'].unique()
     cmap = plt.cm.viridis
 
-    for theta in angles:
+    for j, theta in enumerate(angles):
         theta_specific_energy_levels = df[(df['theta'] == theta)]
         theta_specific_energy_levels = np.delete(theta_specific_energy_levels, 0, 1)
         magnetic_field = theta_specific_energy_levels[:,0]
 
         for i in range(1, theta_specific_energy_levels.shape[1]):
-            color = cmap((i - 1) / (theta_specific_energy_levels.shape[1] - 2))
-            plt.plot(magnetic_field, theta_specific_energy_levels[:, i], label=f'col {i}', color=color)
+            color = cmap((j - 1) / (len(angles) - 2))
+
+            last_line = theta_specific_energy_levels[-1,1:]
+            offset_ammount = np.min(last_line)
+            to_draw = theta_specific_energy_levels[:, i] - offset_ammount
+            plt.plot(magnetic_field, to_draw, label=f'col {i}', color=color)
 
         plt.xlabel('Feld (Oe)')
         plt.ylabel('Energie (GHz)')
@@ -261,9 +265,10 @@ def calculate_hc_from_esr(filename, T = np.logspace(-2, 1, 100)):
         theta_df = df[df['theta'] == theta].iloc[:, 1:].values
         magnetic_field = theta_df[:, 0]
 
+        offset_energy_ghz = np.min(theta_df[-1, 1:9])
         for j, field in enumerate(magnetic_field):
             field_idx = field_to_idx[field]  # Map to unique field index
-            E_i_GHz = theta_df[j, 1:9]
+            E_i_GHz = theta_df[j, 1:9] - offset_energy_ghz
             E_i = E_i_GHz * 4.799243E-2 # convert GHz energy to Kelvin
 
             for i, temp in enumerate(T):
@@ -652,7 +657,7 @@ def plot_all_C_vs_T_by_offset_theta(C_3d, angles, fields, T, angle_offsets):
         axes = axes.flatten()
 
     norm = Normalize(vmin=fields.min(), vmax=fields.max())
-    cmap = plt.cm.viridis
+    cmap = plt.cm.viridis_r
 
     for i, theta in enumerate(angle_offsets):
         ax = axes[i]
@@ -692,10 +697,10 @@ def load_hc_xlsx(filename):
 filename = "E.csv"
 #filename = "2GHz4_g2.csv"
 
-plot_energy_levels(filename, True)
+#plot_energy_levels(filename, True)
 C_3d, angles, fields = calculate_hc_from_esr(filename, T)
 
-plot_all_C_vs_T_by_theta(C_3d, angles, fields, T)
+#plot_all_C_vs_T_by_theta(C_3d, angles, fields, T)
 
 plot_all_C_and_dual_averaging(C_3d, angles, fields, T)
 #plot_c_averaging(C_3d, angles, fields, T, [0, 200, 400, 600, 2000])
