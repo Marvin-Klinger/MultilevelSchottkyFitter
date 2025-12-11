@@ -646,7 +646,7 @@ def plot_all_C_vs_T_by_offset_theta(C_3d, angles, fields, T, angle_offsets):
 
     # Create figure with subplots (5 rows if many angles, adjust as needed)
     n_cols = min(5, n_offsets)
-    n_rows = (n_angles + n_cols - 1) // n_cols
+    n_rows = (n_offsets + n_cols - 1) // n_cols
     fig, axes = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 5 * n_rows),
                              sharex=True, sharey=True)
     if n_angles == 1:
