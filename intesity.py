@@ -50,9 +50,6 @@ def draw_spectra():
 
 def draw_spectra_diff():
     # Load CSV file
-    # Assumes I.csv is in the current working directory
-    # and has columns: angle, intensity, magnetfield
-
     df = pd.read_csv('I.csv', header=None, names=['angle', 'intensity', 'magnetfield'])
 
     # Define Gaussian function
@@ -80,10 +77,23 @@ def draw_spectra_diff():
             )
         summed_curves[angle] = total_intensity
 
+    # Prepare plasma colormap for angles
+    angles = np.array(sorted(summed_curves.keys()))
+    cmap = plt.get_cmap('plasma')           # get plasma colormap [web:10]
+    colors = cmap(np.linspace(0, 1, len(angles)))  # sample distinct colors [web:5]
+
+    # Map angle -> color
+    angle_to_color = {ang: col for ang, col in zip(angles, colors)}
+
     # First plot: summed intensity over magnetfield for each angle
     plt.figure(figsize=(8, 6))
     for angle, intensity_sum in summed_curves.items():
-        plt.plot(magnetfield_grid, intensity_sum, label=f'angle = {angle}')
+        plt.plot(
+            magnetfield_grid,
+            intensity_sum,
+            label=f'angle = {angle}',
+            color=angle_to_color[angle],
+        )
 
     plt.xlabel('Magnetfield')
     plt.ylabel('Summed intensity')
@@ -95,7 +105,12 @@ def draw_spectra_diff():
     plt.figure(figsize=(8, 6))
     for angle, intensity_sum in summed_curves.items():
         derivative = np.gradient(intensity_sum, magnetfield_grid)
-        plt.plot(magnetfield_grid, derivative, label=f'd/dB angle = {angle}')
+        plt.plot(
+            magnetfield_grid,
+            derivative,
+            label=f'd/dB angle = {angle}',
+            color=angle_to_color[angle],  # same color mapping as first plot
+        )
 
     plt.xlabel('Magnetfield')
     plt.ylabel('Derivative of summed intensity')
@@ -104,6 +119,7 @@ def draw_spectra_diff():
     plt.tight_layout()
 
     plt.show()
+
 
 
 def draw_avgeraged_spectrum():
@@ -360,7 +376,7 @@ def draw_weighted_averaged_spectra_sigma_scan_with_offset(delta_theta_deg=70.53)
 
 
 
-#draw_spectra_diff()
-#draw_avgeraged_spectrum()
+draw_spectra_diff()
+draw_avgeraged_spectrum()
 #draw_weighted_averaged_spectra_sigma_scan()
 draw_weighted_averaged_spectra_sigma_scan_with_offset()
